@@ -68,14 +68,14 @@ serve(async (req: Request) => {
         for (let i = 0; i < data[0][days[d.getDay()]].length; i++) {
           const hourArray = data[0][days[d.getDay()]][i];
           for (let j = 0; j < hourArray.length; j++) {
-            const f = hourArray[0];
-            const t = hourArray[1];
+            const f = hourArray[j][0];
+            const t = hourArray[j][1];
 
             if (f == from && t == to) {
               docAvailableForRdv = true;
             }
           }
-        }
+        }    
 
         if (!docAvailableForRdv) {
           throw "0";
