@@ -70,7 +70,9 @@ export const fetchClient = async (id) => {
 }
 
 export const fetchDoctor = async (id) => {
-    const { data, error } = await supabase.from("users").select("*, agenda(*), rdv!rdv_doctor_id_fkey(*)").eq("id", id);
+    const date = new Date();
+    date.setDate(date.getDate() - 1);
+    const { data, error } = await supabase.from("users").select("*, agenda(*), rdv!rdv_doctor_id_fkey(*)").eq("id", id).gte("rdv.date", date.toISOString());
 
     if (error) {
         console.log("Err !", error);
@@ -81,7 +83,9 @@ export const fetchDoctor = async (id) => {
 }
 
 export const fetchUserRdv = async (userId) => {
-    const { data, error } = await supabase.from("rdv").select("*, users!rdv_doctor_id_fkey(*)").eq("user_id", userId);
+    const date = new Date();
+    date.setDate(date.getDate() - 1);
+    const { data, error } = await supabase.from("rdv").select("*, users!rdv_doctor_id_fkey(*)").eq("user_id", userId).gte("date", date.toISOString());    
 
     if (error) {
         console.log("Err !", error);
@@ -148,6 +152,10 @@ export const addRdv = async (token, date, from, to, doctor) => {
     });
 
     console.log(error, data)
+
+    if (error) {
+        alert("Un erreur est survenue pendant la prise de votre rendez-vous.")
+    }
 
     return data;
 }

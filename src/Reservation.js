@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { View, Text, TouchableOpacity, Animated, ScrollView, Image } from "react-native";
+import { View, Text, TouchableOpacity, Animated, ScrollView, Image, ActivityIndicator } from "react-native";
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
-import { authListener, defaultDoctor, defaultRdv, defaultUser, fetchClient, fetchDoctor, fetchUserRdv } from "../supabaseConfig";
+import { addRdv, authListener, defaultDoctor, defaultRdv, defaultUser, fetchClient, fetchDoctor, fetchUserRdv } from "../supabaseConfig";
 import { TopBar } from "./TopBar";
 import { AuthModal } from "./AuthModal";
 import { UserRdvModal } from "./UserRdvModal";
 
 const types = ["", "Accuponcteur"]
 
-const Calendar = ({ prendreRdv, agenda }) => {
+const Calendar = ({ prendreRdv, agenda, rdvs, dName, dLastname, setShowConfirmModal, showConfrimModal }) => {
 
     // function to get all the days in the current month
     const getDaysInMonth = (month, year) => {
@@ -77,6 +77,8 @@ const Calendar = ({ prendreRdv, agenda }) => {
         }).start()
     }
 
+    const [clickedTiming, setClickedTiming] = useState([]);
+
     return (
         <View style={{
             width: 400, backgroundColor: "rgb(242, 242, 242)", borderRadius: 15, shadowColor: "gray",
@@ -86,7 +88,10 @@ const Calendar = ({ prendreRdv, agenda }) => {
             },
             shadowOpacity: 0.33,
             shadowRadius: 5,
-        }}>
+        }}>{
+           (selectedDate && showConfrimModal) && 
+            <ConfirmRdvModal from={clickedTiming[0]} to={clickedTiming[1]} selectedDate={selectedDate} prendreRdv={prendreRdv} dayFull={fullDays[selectedDate.getDay()]} day={selectedDate.getDate()} monthFull={months[selectedDate.getMonth()]} lastname={dLastname} name={dName} setShowModal={setShowConfirmModal} />
+        }
 
             {/* modal */}
             {selectedDate &&
@@ -99,7 +104,7 @@ const Calendar = ({ prendreRdv, agenda }) => {
                             <Ionicons name="close" size={20} color="black" />
                         </TouchableOpacity>
                     </View>
-                    <ScrollView style={{ paddingVertical: 10, width: "100%", paddingHorizontal: 20 }}>
+                    <ScrollView style={{ paddingVertical: 10, width: "100%", paddingHorizontal: 20, height: "100%" }}>
                         {
                             agenda[daysEng[selectedDate.getDay()]].map((row, i) => {
                                 return (
@@ -108,19 +113,55 @@ const Calendar = ({ prendreRdv, agenda }) => {
                                         {
                                             row.map((fromTo, j) => {
 
-                                                var taken = Math.random() < 0.3;;
+                                                var taken = true;
 
-                                                if (selectedDate.getDate() == currentDate.getDate() && selectedDate.getMonth() == currentDate.getMonth()) {                                                    
-                                                    if (new Date().getHours() >= Number(fromTo[0].slice(0, 2))) {
-                                                        console.log()
-                                                        taken = true;
+                                                const isBooked = () => {
+                                                    for (let k = 0; k < rdvs.length; k++) {
+                                                        const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+                                                        const day = days[new Date(rdvs[k].date).getDay()];
+                                                        if (day == days[selectedDate.getDay()]) {
+                                                            const d = new Date(rdvs[k].date);
+                                                            const utc_d = d.getDate();
+                                                            const utc_y = d.getFullYear();
+                                                            const utc_m = d.getMonth();
+
+                                                            const d2 = selectedDate;
+                                                            const d2_d = d2.getDate();
+                                                            const d2_y = d2.getFullYear();
+                                                            const d2_m = d2.getMonth();
+
+                                                            if (d2_d == utc_d && utc_y == d2_y && d2_m == utc_m) {
+                                                                if (rdvs[k].from == fromTo[0] && rdvs[k].to == fromTo[1]) {
+                                                                    return true;
+                                                                }
+                                                            }
+                                                        }
                                                     }
+
+                                                    return false;
                                                 }
+
+                                                isBooked();
+
+
+                                                // if the selected day is the current day and the hours are already in past
+                                                if (selectedDate.getDate() == currentDate.getDate() && selectedDate.getMonth() == currentDate.getMonth() && new Date().getHours() >= Number(fromTo[0].slice(0, 2))) {
+                                                    taken = true;
+                                                } else if (isBooked()) {
+                                                    taken = true;
+                                                } else {
+                                                    taken = false;
+                                                }
+
 
 
                                                 return (
 
-                                                    <TouchableOpacity onPress={() => prendreRdv()} disabled={taken} key={j} style={{ marginVertical: 10, backgroundColor: !taken ? "white" : null, borderRadius: 10, padding: 10, justifyContent: "center", alignItems: "center" }}>
+                                                    <TouchableOpacity onPress={() => {
+                                                        // to do
+                                                        setClickedTiming(fromTo);
+                                                        setShowConfirmModal(true);
+                                                    }} disabled={taken} key={j} style={{ marginVertical: 10, backgroundColor: !taken ? "white" : null, borderRadius: 10, padding: 10, justifyContent: "center", alignItems: "center" }}>
                                                         <Text style={{ color: !taken ? null : "darkgray" }}>{String(fromTo[0]).slice(0, 5).replace(":", "h")}</Text>
                                                         <Text style={{ color: !taken ? null : "darkgray" }}>•</Text>
                                                         <Text style={{ color: !taken ? null : "darkgray" }}>{String(fromTo[1]).slice(0, 5).replace(":", "h")}</Text>
@@ -185,7 +226,7 @@ const Calendar = ({ prendreRdv, agenda }) => {
                                         return (
                                             <TouchableOpacity onPress={() => {
                                                 setSelectedDate(day)
-                                                animIn()                                                
+                                                animIn()
                                             }} disabled={!isAvailable} key={j} style={{ width: 40, height: 40, backgroundColor: isAvailable ? "white" : null, borderRadius: 10, justifyContent: "center", alignItems: "center" }}>
                                                 <Text style={{ fontWeight: "bold", color: isAvailable ? "black" : "gray" }}>{day.getDate()}</Text>
                                             </TouchableOpacity>
@@ -194,7 +235,7 @@ const Calendar = ({ prendreRdv, agenda }) => {
                                         :
                                         [...week, ...Array(7 - week.length).keys()].map((day, j) => {
                                             var isAvailable;
-                                            if (typeof(day) == "object") {
+                                            if (typeof (day) == "object") {
                                                 isAvailable = !(agenda[daysEng[day.getDay()]].length > 0 ? monthIndex == 1 ? false : day.getDate() >= currentDate.getDate() ? false : true : true)
                                             }
                                             return (
@@ -235,7 +276,7 @@ const SpeBubbles = ({ spe }) => {
 
 const DoctorInfos = ({ doctor }) => {
 
-    const spes = ["douleurs", "stress", "troubles digestifs", "problèmes hormonaux"];    
+    const spes = ["douleurs", "stress", "troubles digestifs", "problèmes hormonaux"];
 
     return (
         <View style={{ alignItems: "center", padding: 20 }}>
@@ -260,18 +301,85 @@ const DoctorInfos = ({ doctor }) => {
     )
 }
 
+const ConfirmRdvModal = ({dayFull, day, monthFull, lastname, name, from, to, selectedDate, prendreRdv, setShowModal }) => {
+    
+    const scaleAnim = useRef(new Animated.Value(0.5)).current;
+    
+    const animIn = () => {
+        Animated.spring(scaleAnim, {
+            toValue: 1,
+            bounciness: 10,
+            speed: 4
+        }).start()
+    }
+
+    const animOut = () => {
+        Animated.timing(scaleAnim, {
+            toValue: 0.5,
+            duration: 400,
+        }).start(() => setShowModal(false))
+    }
+
+    const [loading, setLoading] = useState(false);
+
+    return (
+        <View style={{            
+            position: "absolute",
+            zIndex: 2,
+            width: "100%",
+            height: "100%",
+            justifyContent: "center", 
+            alignItems: "center"
+        }}>
+            <Animated.View onLayout={() => animIn()} style={{
+                transform: [{scale: scaleAnim}],
+                shadowColor: "gray",
+                shadowOffset: {
+                    width: 0,
+                    height: 0,
+                },
+                shadowOpacity: 0.33,
+                shadowRadius: 5,
+                backgroundColor: "rgb(242, 242, 242)",
+                padding: 20,
+                borderRadius: 10,
+                width: "90%"
+            }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                        <Text style={{ fontWeight: "bold", fontSize: 16 }}>Valider le rendez-vous</Text>
+                        <TouchableOpacity onPress={() => animOut()}>
+                            <Ionicons name="close" size={20} color="black" />
+                        </TouchableOpacity>
+                </View>
+                <Text style={{ marginVertical: 20 }}>Êtes-vous sûr(e) de vouloir prendre rendez-vous le <Text style={{ fontWeight: "bold" }}>{dayFull} {day} {monthFull}</Text> de <Text style={{ fontWeight: "bold" }}>{String(from).substring(0, 5).replace(":", "h")} <Text style={{ fontWeight: "400" }}>à</Text> {String(to).substring(0, 5).replace(":", "h")} </Text>avec <Text style={{ fontWeight: "bold" }}>{String(lastname).toUpperCase()} {name} ?</Text></Text>
+                <TouchableOpacity onPress={() => {
+                    setLoading(true);
+                    prendreRdv(from, to, selectedDate);                    
+                }} disabled={loading} style={{ padding: 10, backgroundColor: "black", borderRadius: 10, justifyContent: "center", alignItems: "center", flexDirection: "row" }}>
+                    <Text style={{ color: "white", fontWeight: "bold" }}>Valider la date</Text>
+                    {
+                        loading && <ActivityIndicator color={"white"} style={{ marginLeft: 15 }} />
+                    }
+                </TouchableOpacity>
+            </Animated.View>
+        </View>
+    )
+}
+
 export const Reservation = () => {
 
     const uuid = "b26374e3-d5d6-40a5-905a-fad47ff6c89a";
 
     const [doctor, setDoctor] = useState(defaultDoctor);
     const [user, setUser] = useState(defaultUser);
-    const [session, setSession] = useState({});    
+    const [session, setSession] = useState({});
     const [userRdv, setUserRdv] = useState(defaultRdv);
 
     const [isInOrUp, setIsInOrUp] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [showRdv, setShowRdv] = useState(false);
+
+    const [showConfrimModal, setShowConfirmModal] = useState(false);    
 
     useEffect(() => {
         const getData = async () => {
@@ -302,10 +410,33 @@ export const Reservation = () => {
         }
     }, [user]);
 
-    const prendreRdv = () => {
-        if (!session) {            
+    const reloadData = () => {
+        const gatherAgain = async () => {
+            if (session && session.user) {
+                setUserRdv(await fetchUserRdv(session.user.id));
+            }
+            setDoctor(await fetchDoctor(uuid));
+        }
+
+        gatherAgain();
+    }
+
+    const prendreRdv = async (from, to, selectedDate, setLoading) => {
+        if (!session) {
             setIsInOrUp(true);
             return setShowModal(true);
+        }
+
+        const data = await addRdv(session.access_token, selectedDate.valueOf(), from, to, uuid);
+
+        if (data.error) {
+            setLoading(false);
+            setShowConfirmModal(false);
+        } else {
+            // pas d'erreur
+            setShowConfirmModal(false);
+            reloadData();
+            setShowRdv(true);
         }
     }
 
@@ -322,7 +453,7 @@ export const Reservation = () => {
                 <DoctorInfos doctor={doctor} />
             </View>
             <View style={{ width: "50vw", height: "100%", justifyContent: "center", alignItems: "center", backgroundColor: "rgb(242, 242, 242)" }}>
-                <Calendar prendreRdv={prendreRdv} agenda={doctor.agenda} />
+                <Calendar setShowConfirmModal={setShowConfirmModal} showConfrimModal={showConfrimModal} prendreRdv={prendreRdv} agenda={doctor.agenda} rdvs={doctor.rdv} dLastname={doctor.lastname} dName={doctor.name} />                
             </View>
         </View>
     )
