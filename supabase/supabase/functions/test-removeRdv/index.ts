@@ -1,12 +1,3 @@
-// Follow this setup guide to integrate the Deno language server with your editor:
-// https://deno.land/manual/getting_started/setup_your_environment
-// This enables autocomplete, go to definition, etc.
-
-// [x] - verifier si utilisateur logged in
-// [x] - verifier si y as pas d'autres rdv
-// [x] - verifier si rdv possible
-// [ ] - verifier si la date demandée n'est pas déjà passée...
-
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -27,7 +18,7 @@ serve(async (req: Request) => {
     );
   } else {
     try {
-      const { date, from, to, doctor } = await req.json();
+      const { id } = await req.json();
       // Create a Supabase client with the Auth context of the logged in user.
       const supabaseClient = createClient(
         "https://urxlizycdcakcagbzumv.supabase.co",
@@ -40,62 +31,10 @@ serve(async (req: Request) => {
       } = await supabaseClient.auth.getUser()
 
       // And we can run queries in the context of our authenticated user
-      const { data, error } = await supabaseClient.from('users').select().in("id", [user.id, doctor]);
+      const { error } = await supabaseClient.from("rdv").delete().eq("id", id).eq("user_id", user.id);
       if (error) throw error;
-
-      const doctorIndex = data.findIndex(x => x.id === doctor)
-
-
-      if (data[0].initialized && data[1].initialized && data[doctorIndex].type != 0) {
-        // users exists and doctor is a doctor
-        var d = new Date()
-        d.setTime(date);
-        const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
-        const { data, error } = await supabaseClient.from("agenda").select().eq("doctor_id", doctor);
-        if (error) throw error;
-
-        var docAvailableForRdv = false;
-
-        for (let i = 0; i < data[0][days[d.getDay()]].length; i++) {
-          const hourArray = data[0][days[d.getDay()]][i];
-          for (let j = 0; j < hourArray.length; j++) {
-            const f = hourArray[j][0];
-            const t = hourArray[j][1];
-
-            if (f == from && t == to) {
-              docAvailableForRdv = true;
-            }
-          }
-        }    
-
-        if (!docAvailableForRdv) {
-          throw "0";
-        } else {
-          const { data, error } = await supabaseClient.from("rdv").select().match({ from: from, to: to, doctor_id: doctor });
-          if (error) throw error;
-
-          var date_ = new Date()
-          date_.setTime(date)
-          if (data.length == 0) {
-            //ajouter rdv
-            const { error } = await supabaseClient.from("rdv").insert({ doctor_id: doctor, user_id: user.id, from, to, date: date_ })
-            if (error) throw error;
-
-          } else {
-            if (new Date(data[0].date).getDate() == d.getDate()) {
-              throw "1";
-            } else {
-              // ajouter rdv 
-              const { error } = await supabaseClient.from("rdv").insert({ doctor_id: doctor, user_id: user.id, from, to, date: date_ })
-              if (error) throw error;
-            }
-          }
-        }
-      } else {
-        throw "2";
-      }
-
-      return new Response(JSON.stringify({ data, logging }), {
+      const data = "ok"
+      return new Response(JSON.stringify({ data, error }), {
 
         headers: {
           "Content-Type": "application/json",

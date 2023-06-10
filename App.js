@@ -16,19 +16,19 @@ import { Reservation } from "./src/Reservation";
 // [X] - Consulter ses réservations en cours
 // [X] - Display real availability of hours
 // [X] - Prendre RDV
+// [X] - Si pas connecté, pb pop up pour prendre rdv. Ne pas ouvrir pop up prendre rdv si pas co.
+// [X] - Inscription, will it work ?
+// [X] - Remove RDV
 
 // [ ] - Inscription (add name and lastname modal)
 // [ ] - Phone responsive
 // [ ] - Remove RDV (send email on rdv removed)
 // [ ] - Mot de passe oublié
 // [ ] - Can't take rdv today !?
-// [ ] - Handle error one taking rdv with modals...
+// [ ] - Handle error on taking rdv with modals...
 // [ ] - Doctor pannel (admin)
 // [ ] - 
 
-const uuid = "b26374e3-d5d6-40a5-905a-fad47ff6c89a";
-
-/* new */
 const App = () => {
   return (
     <View>

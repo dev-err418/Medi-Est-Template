@@ -8,7 +8,7 @@ import { UserRdvModal } from "./UserRdvModal";
 
 const types = ["", "Accuponcteur"]
 
-const Calendar = ({ prendreRdv, agenda, rdvs, dName, dLastname, setShowConfirmModal, showConfrimModal }) => {
+const Calendar = ({ prendreRdv, agenda, rdvs, dName, dLastname, setShowConfirmModal, showConfrimModal, checkLog }) => {
 
     // function to get all the days in the current month
     const getDaysInMonth = (month, year) => {
@@ -89,9 +89,9 @@ const Calendar = ({ prendreRdv, agenda, rdvs, dName, dLastname, setShowConfirmMo
             shadowOpacity: 0.33,
             shadowRadius: 5,
         }}>{
-           (selectedDate && showConfrimModal) && 
-            <ConfirmRdvModal from={clickedTiming[0]} to={clickedTiming[1]} selectedDate={selectedDate} prendreRdv={prendreRdv} dayFull={fullDays[selectedDate.getDay()]} day={selectedDate.getDate()} monthFull={months[selectedDate.getMonth()]} lastname={dLastname} name={dName} setShowModal={setShowConfirmModal} />
-        }
+                (selectedDate && showConfrimModal) &&
+                <ConfirmRdvModal checkLog={checkLog} from={clickedTiming[0]} to={clickedTiming[1]} selectedDate={selectedDate} prendreRdv={prendreRdv} dayFull={fullDays[selectedDate.getDay()]} day={selectedDate.getDate()} monthFull={months[selectedDate.getMonth()]} lastname={dLastname} name={dName} setShowModal={setShowConfirmModal} />
+            }
 
             {/* modal */}
             {selectedDate &&
@@ -159,8 +159,10 @@ const Calendar = ({ prendreRdv, agenda, rdvs, dName, dLastname, setShowConfirmMo
 
                                                     <TouchableOpacity onPress={() => {
                                                         // to do
-                                                        setClickedTiming(fromTo);
-                                                        setShowConfirmModal(true);
+                                                        if (checkLog()) {
+                                                            setClickedTiming(fromTo);
+                                                            setShowConfirmModal(true);
+                                                        }
                                                     }} disabled={taken} key={j} style={{ marginVertical: 10, backgroundColor: !taken ? "white" : null, borderRadius: 10, padding: 10, justifyContent: "center", alignItems: "center" }}>
                                                         <Text style={{ color: !taken ? null : "darkgray" }}>{String(fromTo[0]).slice(0, 5).replace(":", "h")}</Text>
                                                         <Text style={{ color: !taken ? null : "darkgray" }}>•</Text>
@@ -301,10 +303,10 @@ const DoctorInfos = ({ doctor }) => {
     )
 }
 
-const ConfirmRdvModal = ({dayFull, day, monthFull, lastname, name, from, to, selectedDate, prendreRdv, setShowModal }) => {
-    
+const ConfirmRdvModal = ({ dayFull, day, monthFull, lastname, name, from, to, selectedDate, prendreRdv, setShowModal, checkLog }) => {
+
     const scaleAnim = useRef(new Animated.Value(0.5)).current;
-    
+
     const animIn = () => {
         Animated.spring(scaleAnim, {
             toValue: 1,
@@ -323,16 +325,16 @@ const ConfirmRdvModal = ({dayFull, day, monthFull, lastname, name, from, to, sel
     const [loading, setLoading] = useState(false);
 
     return (
-        <View style={{            
+        <View style={{
             position: "absolute",
             zIndex: 2,
             width: "100%",
             height: "100%",
-            justifyContent: "center", 
+            justifyContent: "center",
             alignItems: "center"
         }}>
             <Animated.View onLayout={() => animIn()} style={{
-                transform: [{scale: scaleAnim}],
+                transform: [{ scale: scaleAnim }],
                 shadowColor: "gray",
                 shadowOffset: {
                     width: 0,
@@ -346,15 +348,17 @@ const ConfirmRdvModal = ({dayFull, day, monthFull, lastname, name, from, to, sel
                 width: "90%"
             }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                        <Text style={{ fontWeight: "bold", fontSize: 16 }}>Valider le rendez-vous</Text>
-                        <TouchableOpacity onPress={() => animOut()}>
-                            <Ionicons name="close" size={20} color="black" />
-                        </TouchableOpacity>
+                    <Text style={{ fontWeight: "bold", fontSize: 16 }}>Valider le rendez-vous</Text>
+                    <TouchableOpacity onPress={() => animOut()}>
+                        <Ionicons name="close" size={20} color="black" />
+                    </TouchableOpacity>
                 </View>
                 <Text style={{ marginVertical: 20 }}>Êtes-vous sûr(e) de vouloir prendre rendez-vous le <Text style={{ fontWeight: "bold" }}>{dayFull} {day} {monthFull}</Text> de <Text style={{ fontWeight: "bold" }}>{String(from).substring(0, 5).replace(":", "h")} <Text style={{ fontWeight: "400" }}>à</Text> {String(to).substring(0, 5).replace(":", "h")} </Text>avec <Text style={{ fontWeight: "bold" }}>{String(lastname).toUpperCase()} {name} ?</Text></Text>
                 <TouchableOpacity onPress={() => {
-                    setLoading(true);
-                    prendreRdv(from, to, selectedDate);                    
+                    if (checkLog()) {
+                        setLoading(true);
+                        prendreRdv(from, to, selectedDate);
+                    }
                 }} disabled={loading} style={{ padding: 10, backgroundColor: "black", borderRadius: 10, justifyContent: "center", alignItems: "center", flexDirection: "row" }}>
                     <Text style={{ color: "white", fontWeight: "bold" }}>Valider la date</Text>
                     {
@@ -379,7 +383,7 @@ export const Reservation = () => {
     const [showModal, setShowModal] = useState(false);
     const [showRdv, setShowRdv] = useState(false);
 
-    const [showConfrimModal, setShowConfirmModal] = useState(false);    
+    const [showConfrimModal, setShowConfirmModal] = useState(false);
 
     useEffect(() => {
         const getData = async () => {
@@ -410,15 +414,11 @@ export const Reservation = () => {
         }
     }, [user]);
 
-    const reloadData = () => {
-        const gatherAgain = async () => {
-            if (session && session.user) {
-                setUserRdv(await fetchUserRdv(session.user.id));
-            }
-            setDoctor(await fetchDoctor(uuid));
+    const reloadData = async () => {
+        if (session && session.user) {
+            setUserRdv(await fetchUserRdv(session.user.id));
         }
-
-        gatherAgain();
+        setDoctor(await fetchDoctor(uuid));
     }
 
     const prendreRdv = async (from, to, selectedDate, setLoading) => {
@@ -440,20 +440,30 @@ export const Reservation = () => {
         }
     }
 
+    const checkLog = () => {
+        if (!session) {
+            setIsInOrUp(true);
+            setShowModal(true);
+            return false;
+        }
+
+        return true;
+    }
+
     return (
         <View style={{ minHeight: 600, height: "100vh", width: "100vw", flexDirection: "row", backgroundColor: "rgb(242, 242, 242)", overflowX: "hidden" }}>
             {
                 showModal && <AuthModal setShowModal={setShowModal} inOrUp={isInOrUp} />
             }
             {
-                showRdv && <UserRdvModal rdvs={userRdv} setShowModal={setShowRdv} />
+                showRdv && <UserRdvModal rdvs={userRdv} setShowModal={setShowRdv} checkLog={checkLog} session={session} reloadData={reloadData} />
             }
             <TopBar user={user} session={session} setIsInOrUp={setIsInOrUp} setShowModal={setShowModal} setShowRdv={setShowRdv} />
             <View style={{ width: "50vw", height: "100%", justifyContent: "center", alignItems: "center", backgroundColor: "white", borderTopRightRadius: 70, borderBottomRightRadius: 70 }}>
                 <DoctorInfos doctor={doctor} />
             </View>
             <View style={{ width: "50vw", height: "100%", justifyContent: "center", alignItems: "center", backgroundColor: "rgb(242, 242, 242)" }}>
-                <Calendar setShowConfirmModal={setShowConfirmModal} showConfrimModal={showConfrimModal} prendreRdv={prendreRdv} agenda={doctor.agenda} rdvs={doctor.rdv} dLastname={doctor.lastname} dName={doctor.name} />                
+                <Calendar checkLog={checkLog} setShowConfirmModal={setShowConfirmModal} showConfrimModal={showConfrimModal} prendreRdv={prendreRdv} agenda={doctor.agenda} rdvs={doctor.rdv} dLastname={doctor.lastname} dName={doctor.name} />
             </View>
         </View>
     )

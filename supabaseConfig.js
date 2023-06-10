@@ -105,7 +105,7 @@ export const signUpWithEmail = async (email, pass) => {
         alert("Une erreur est survenue lors de la connexion.")
     }
 
-    alert("Vous avez reçu un email de confirmation, validez votre email puis connectez vous !")
+    alert("Vous avez reçu un email de confirmation, cliquez sur le lien reçu par email puis connectez vous !")
 }
 //example-password
 export const signInWithEmail = async (email, pass) => {
@@ -154,7 +154,26 @@ export const addRdv = async (token, date, from, to, doctor) => {
     console.log(error, data)
 
     if (error) {
-        alert("Un erreur est survenue pendant la prise de votre rendez-vous.")
+        alert("Une erreur est survenue pendant la prise de votre rendez-vous.")
+    }
+
+    return data;
+}
+
+export const removeRdv = async (id, token) => {
+    const { data, error } = await supabase.functions.invoke("test-removeRdv", {
+        body: {
+            id: id,
+        },
+        headers: {
+            "Authorization": `Bearer ${token}`
+        }
+    });
+
+    console.log(data, error)
+
+    if (error) {
+        alert("Une erreur est survenue pendant la suppression de votre rendez-vous.")
     }
 
     return data;
