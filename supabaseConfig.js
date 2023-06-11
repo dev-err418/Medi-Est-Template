@@ -138,7 +138,7 @@ export const authListener = (setSession) => {
     })
 }
 
-export const addRdv = async (token, date, from, to, doctor) => {    
+export const addRdv = async (token, date, from, to, doctor) => {        
     const { data, error } = await supabase.functions.invoke("test-addRdv", {
         body: {
             date: new Date(date).getTime(),

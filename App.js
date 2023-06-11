@@ -19,12 +19,12 @@ import { Reservation } from "./src/Reservation";
 // [X] - Si pas connecté, pb pop up pour prendre rdv. Ne pas ouvrir pop up prendre rdv si pas co.
 // [X] - Inscription, will it work ?
 // [X] - Remove RDV
+// [X] - Can't take rdv today !?
 
 // [ ] - Inscription (add name and lastname modal)
 // [ ] - Phone responsive
 // [ ] - Remove RDV (send email on rdv removed)
 // [ ] - Mot de passe oublié
-// [ ] - Can't take rdv today !?
 // [ ] - Handle error on taking rdv with modals...
 // [ ] - Doctor pannel (admin)
 // [ ] - 

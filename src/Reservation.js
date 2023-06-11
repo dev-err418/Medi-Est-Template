@@ -416,7 +416,12 @@ export const Reservation = () => {
 
     const reloadData = async () => {
         if (session && session.user) {
-            setUserRdv(await fetchUserRdv(session.user.id));
+            const rdvs = await fetchUserRdv(session.user.id)
+            setUserRdv([]);
+            setUserRdv(rdvs);
+            // setUserRdv(await fetchUserRdv(session.user.id));
+
+            // setUserRdv([]);
         }
         setDoctor(await fetchDoctor(uuid));
     }
@@ -427,7 +432,7 @@ export const Reservation = () => {
             return setShowModal(true);
         }
 
-        const data = await addRdv(session.access_token, selectedDate.valueOf(), from, to, uuid);
+        const data = await addRdv(session.access_token, selectedDate.valueOf() + 14400000, from, to, uuid);
 
         if (data.error) {
             setLoading(false);

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Animated, TouchableOpacity, View, useWindowDimensions, Text, ScrollView, ActivityIndicator } from "react-native";
+import { Animated, TouchableOpacity, View, useWindowDimensions, Text, ScrollView, ActivityIndicator, FlatList } from "react-native";
 import { Ionicons, Entypo, MaterialIcons } from '@expo/vector-icons';
 import { removeRdv } from "../supabaseConfig";
 
-const RdvRow = ({ rdv, checkLog, session, reloadData, setDis, dis }) => {
+const RdvRow = ({ rdv, checkLog, session, reloadData, rdvId, setRdvId }) => {
 
     const rdvDate = new Date(rdv.date);
     const animatedOpacity = useRef(new Animated.Value(1)).current;
@@ -43,16 +43,16 @@ const RdvRow = ({ rdv, checkLog, session, reloadData, setDis, dis }) => {
                     <Text style={{ fontWeight: "bold", marginLeft: 5 }}>{rdv.users.phone}</Text>
                 </View>
             </View>
-            <TouchableOpacity disabled={dis} onPress={async () => {
+            <TouchableOpacity disabled={rdvId == rdv.id} onPress={async () => {
                 if (checkLog()) {
-                    setDis(true)
+                    setRdvId(rdv.id);
                     const data = await removeRdv(rdv.id, session.access_token);
                     if (!data.error) {
                         removeElement()
                     }
                 }
             }}>
-                {dis ?
+                {rdvId == rdv.id ?
                     <ActivityIndicator size={"small"} color={"black"} />
                     :
                     <MaterialIcons name="delete-outline" size={20} color="black" />
@@ -84,10 +84,10 @@ export const UserRdvModal = ({ rdvs, setShowModal, checkLog, session, reloadData
         }).start(() => setShowModal(false))
     }
 
-    const [dis, setDis] = useState(false);
+    const [rdvId, setRdvId] = useState(-1);
 
     useEffect(() => {
-        setDis(false);
+        setRdvId(-1);
     }, [rdvs.length])
 
     return (
@@ -119,13 +119,19 @@ export const UserRdvModal = ({ rdvs, setShowModal, checkLog, session, reloadData
                         :
                         <View>
                             <Text style={{ fontWeight: "bold" }}>Vous avez {rdvs.length} rendez-vous :</Text>
-                            <ScrollView style={{ maxHeight: 250, padding: 20, paddingBottom: 0, width: "calc(100% + 40px)", left: -20 }}>
+                            <FlatList 
+                                style={{ maxHeight: 250, padding: 20, paddingBottom: 0, width: "calc(100% + 40px)", left: -20 }}
+                                data={rdvs}
+                                renderItem={(item) => <RdvRow rdv={item.item} checkLog={checkLog} session={session} reloadData={reloadData} setRdvId={setRdvId} rdvId={rdvId} />}
+                                keyExtractor={(item) => item.id}
+                            />
+                            {/* <ScrollView style={{ maxHeight: 250, padding: 20, paddingBottom: 0, width: "calc(100% + 40px)", left: -20 }}>
                                 {
                                     rdvs.map((rdv, i) => {
-                                        return <RdvRow key={i} rdv={rdv} checkLog={checkLog} session={session} reloadData={reloadData} setDis={setDis} dis={dis} />
+                                        return <RdvRow key={i} rdv={rdv} checkLog={checkLog} session={session} reloadData={reloadData} setRdvId={setRdvId} rdvId={rdvId} />
                                     })
                                 }
-                            </ScrollView>
+                            </ScrollView> */}
                         </View>
                 }
             </Animated.View>
